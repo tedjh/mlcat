@@ -1,0 +1,44 @@
+[project]
+name = "categories"
+version = "0.1.0"
+description = "Example project with PyTorch, NumPy, and Pandas"
+authors = [{ name = "Ted Jones-Healey", email = "ted.jh@hotmail.com" }]
+requires-python = ">=3.12"
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "networkx",
+    "matplotlib",
+    "tqdm",
+    "mlflow",
+    "datasets",
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "pytest",
+]
+
+[tool.uv.pip]
+extra-index-url = ["https://download.pytorch.org/whl/cu128"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pre-commit",
+    "pylint",
+    "mypy",
+    "black",
+    "ruff",
+    "flake8"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools", "uv"]
+build-backend = "setuptools.build_meta"
