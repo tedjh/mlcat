@@ -1,12 +1,17 @@
+"""Generative Adversarial Network (GAN) example using the mlcat library."""
+
 import torch
 
 from mlcat.objects import Object
 from mlcat.morphisms import TorchMorphism, ProductObject
-from mlcat.categories import Category, TrainPath, Equation
-from mlcat.data import get_dataloader, RandomGenerator
+from mlcat.categories import Category, Path, Equation
+from mlcat.data import get_dataloader, RandomImageGenerator
 
 
 def main(dataset_name: str = "MNIST"):
+    """
+    Main function to set up and train a GAN using the mlcat library.
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     batch_size = 64
     classification_space = Object(
@@ -38,10 +43,10 @@ def main(dataset_name: str = "MNIST"):
         latent_space,
         classification_space,
         dataloaders={
-            "generated_real": RandomGenerator(
+            "generated_real": RandomImageGenerator(
                 shape=torch.Size([batch_size, latent_dim]), device=device, label=1
             ),
-            "generated_fake": RandomGenerator(
+            "generated_fake": RandomImageGenerator(
                 shape=torch.Size([batch_size, latent_dim]), device=device, label=0
             ),
         },
@@ -74,29 +79,29 @@ def main(dataset_name: str = "MNIST"):
         device=device,
         equations=[
             Equation(
-                path_1=TrainPath(
+                path_1=Path(
                     [train_space.projection_a, discriminator],
                     torch.optim.Adam(discriminator.func.parameters(), lr=0.001),
                 ),
-                path_2=TrainPath([train_space.projection_b], None),
+                path_2=Path([train_space.projection_b], None),
                 dataloader_name="MNIST",
                 loss_function_name="BCE",
             ),
             Equation(
-                path_1=TrainPath(
+                path_1=Path(
                     [latent_train_space.projection_a, generator, discriminator],
                     torch.optim.Adam(generator.func.parameters(), lr=0.001),
                 ),
-                path_2=TrainPath([latent_train_space.projection_b], None),
+                path_2=Path([latent_train_space.projection_b], None),
                 dataloader_name="generator_real",
                 loss_function_name="BCE",
             ),
             Equation(
-                path_1=TrainPath(
+                path_1=Path(
                     [latent_train_space.projection_a, generator, discriminator],
                     torch.optim.Adam(generator.func.parameters(), lr=0.001),
                 ),
-                path_2=TrainPath([latent_train_space.projection_b], None),
+                path_2=Path([latent_train_space.projection_b], None),
                 dataloader_name="generator_fake",
                 loss_function_name="BCE",
             ),

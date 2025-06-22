@@ -1,18 +1,23 @@
+"""Example of a simple MNIST classifier using the mlcat library."""
+
 import torch
 
 from mlcat.objects import Object
 from mlcat.morphisms import TorchMorphism, ProductObject
-from mlcat.categories import Category, TrainPath, Equation
+from mlcat.categories import Category, Path, Equation
 from mlcat.data import get_dataloader
 
 
 def main(dataset_name: str = "MNIST"):
+    """
+    Main function to set up and train a simple MNIST classifier using the mlcat library.
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     classification_space = Object(
         torch.Size([10]), {"CE": torch.nn.functional.cross_entropy}
     )
-    image_space = Object(torch.Size([28, 28]), None)
+    image_space = Object(torch.Size([28 * 28]), None)
 
     train_space = ProductObject(
         image_space,
@@ -36,11 +41,11 @@ def main(dataset_name: str = "MNIST"):
         device=device,
         equations=[
             Equation(
-                path_1=TrainPath(
+                path_1=Path(
                     [train_space.projection_a, classifier],
                     torch.optim.Adam(classifier.func.parameters(), lr=0.001),
                 ),
-                path_2=TrainPath([train_space.projection_b], None),
+                path_2=Path([train_space.projection_b], None),
                 dataloader_name="MNIST",
                 loss_function_name="CE",
             )

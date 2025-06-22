@@ -1,42 +1,15 @@
+"""Test for the Category class with a simple MNIST classification example."""
+
 import torch
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
 
-from mlcat.objects import Object
-from mlcat.morphisms import TorchMorphism, ProductObject
-from mlcat.categories import Category, TrainPath, Equation
-import pytest
+from mlcat.morphisms import ProductObject
+from mlcat.categories import Category, Path, Equation
 
 
-@pytest.fixture
-def dataloader():
-    batch_size = 64
-    transform = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]  # scale to [-1, 1]
-    )
-    return DataLoader(
-        datasets.MNIST(
-            root="./data",
-            train=True,
-            download=False,
-            transform=lambda x: transform(x).squeeze(),
-            target_transform=lambda x: torch.nn.functional.one_hot(
-                torch.Tensor([x]).long(), 10
-            )
-            .float()
-            .squeeze(),
-        ),
-        batch_size=batch_size,
-        shuffle=True,
-    )
-
-
-def test_category(dataloader):
+def test_category(setup_mnist_classifier):
+    """Test the Category class with a simple MNIST classification example."""
+    dataloader, classification_space, image_space, classifier = setup_mnist_classifier
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    classification_space = Object(
-        torch.Size([10]), {"CE": torch.nn.functional.cross_entropy}
-    )
-    image_space = Object(torch.Size([28, 28]), None)
 
     train_space = ProductObject(
         image_space,
@@ -44,20 +17,12 @@ def test_category(dataloader):
         dataloaders={"MNIST": dataloader},
     )
 
-    classifier = TorchMorphism(
-        image_space,
-        classification_space,
-        torch.nn.Sequential(
-            torch.nn.Flatten(),
-            torch.nn.Linear(28 * 28, 256),
-            torch.nn.ReLU(),
-            torch.nn.Linear(256, 10),
-        ),
-    )
-
-    image_label_tuple = next(iter(train_space.dataloaders["MNIST"]))
+    image_label_tuple = tuple(next(iter(train_space.dataloaders["MNIST"])))
+    assert isinstance(image_label_tuple, tuple)
+    assert len(image_label_tuple) == 2
+    assert classification_space.loss_functions is not None
     loss = classification_space.loss_functions["CE"](
-        classifier(train_space.projection_a(image_label_tuple)),
+        classifier(train_space.projection_a((image_label_tuple))),
         train_space.projection_b(image_label_tuple),
     )
     assert isinstance(loss.item(), float)
@@ -73,11 +38,11 @@ def test_category(dataloader):
     assert isinstance(classifier.func, torch.nn.Module)
     category.add_equation(
         Equation(
-            path_1=TrainPath(
+            path_1=Path(
                 [train_space.projection_a, classifier],
-                torch.optim.Adam(classifier.func.parameters(), lr=0.001),
+                torch.optim.Adam(classifier.func.parameters(), lr=0.002),
             ),
-            path_2=TrainPath([train_space.projection_b], None),
+            path_2=Path([train_space.projection_b], None),
             dataloader_name="MNIST",
             loss_function_name="CE",
         )

@@ -1,22 +1,30 @@
+"""A module for loading datasets and generating random images."""
+
+from typing import Iterable
+
 import torch
-from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
+from torchvision import datasets, transforms  # type: ignore
 
 
-class CustomDataset:
-    def __init__(self, dataset, target: int, *args, **kwargs):
+class CustomDataset(datasets.VisionDataset):
+    """A custom dataset that assigns a fixed label to all images."""
+
+    def __init__(self, dataset: datasets.VisionDataset, target: int):
+        super().__init__()
         self.target = target
         self.dataset = dataset
-        super().__init__(*args, **kwargs)
 
     def __len__(self):
         return len(self.dataset)
 
-    def __getitem__(self, item):
-        return self.dataset[0], self.target
+    def __getitem__(self, index: int):
+        return self.dataset[index][0], self.target
 
 
-class RandomGenerator:
+class RandomImageGenerator:
+    """A generator that produces random images of a specified shape and device."""
+
     def __init__(
         self,
         shape: torch.Size,
@@ -27,21 +35,24 @@ class RandomGenerator:
         self.device = device
         self.label = label
 
-    def __iter__(self):  # reset iteration
+    def __iter__(self):
         return self
 
     def __next__(self):
+        """Generate a random image tensor of the specified shape and device."""
         if self.label is None:
             return torch.randn(self.shape, device=self.device)
-        else:
-            return (
-                torch.randn(self.shape, device=self.device),
-                torch.full((self.shape[0],), self.label, device=self.device),
-            )
+
+        return (
+            torch.randn(self.shape, device=self.device),
+            torch.full((self.shape[0],), self.label, device=self.device),
+        )
 
 
-def get_dataloader(dataset_name: str, fixed_label: int | None = None) -> DataLoader:
-    """ """
+def get_dataloader(
+    dataset_name: str, fixed_label: int | None = None
+) -> Iterable[tuple[torch.Tensor, torch.Tensor]]:
+    """Get a DataLoader for the specified dataset with optional fixed labels."""
     if dataset_name == "MNIST":
         dataset_class = datasets.MNIST
         output_dim = 10
@@ -60,11 +71,13 @@ def get_dataloader(dataset_name: str, fixed_label: int | None = None) -> DataLoa
         train=True,
         download=True,
         transform=lambda x: transform(x).squeeze().flatten(),
-        target_transform=lambda x: torch.nn.functional.one_hot(
-            torch.Tensor([x]).long(), output_dim
-        )
-        .float()
-        .squeeze(),
+        target_transform=(
+            lambda x: torch.nn.functional.one_hot(  # pylint: disable=not-callable
+                torch.Tensor([x]).long(), output_dim
+            )
+            .float()
+            .squeeze()
+        ),
     )
     if fixed_label is not None:
         dataset = CustomDataset(dataset, fixed_label)

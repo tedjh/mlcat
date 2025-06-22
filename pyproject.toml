@@ -1,7 +1,7 @@
 [project]
 name = "categories"
 version = "0.1.0"
-description = "Example project with PyTorch, NumPy, and Pandas"
+description = "Project for doing ML using Categories"
 authors = [{ name = "Ted Jones-Healey", email = "ted.jh@hotmail.com" }]
 requires-python = ">=3.12"
 
